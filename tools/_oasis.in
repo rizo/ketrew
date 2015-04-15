@@ -30,6 +30,7 @@ Library ketrew_pure
     Ketrew_measurement,
     Ketrew_monitored_script,
     Ketrew_target,
+    Ketrew_target_state,
     Ketrew_protocol,
     Ketrew_metadata
 

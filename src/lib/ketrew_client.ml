@@ -126,12 +126,11 @@ module Http_client = struct
   let kill t id_list = kill_or_restart t (`Kill_targets id_list)
   let restart t id_list = kill_or_restart t (`Restart_targets id_list)
 
-  let call_query t ~target query =
-    let id = Ketrew_target.id target in
-    let message = `Call_query (id, query) in
+  let call_query t ~target_id query =
+    let message = `Call_query (target_id, query) in
     call_json t ~path:"/api" ~meta_meth:(`Post_message message)
     >>= fun json ->
-    filter_down_message json ~loc:(`Target_query (id, query))
+    filter_down_message json ~loc:(`Target_query (target_id, query))
       ~f:(function `Query_result s -> Some s | _ -> None)
 
   let get_list_of_target_ids t query =
@@ -226,13 +225,17 @@ let get_list_of_target_ids t ~query =
   | `Http_client c ->
     Http_client.get_list_of_target_ids c query
 
-let call_query t ~target query =
+let call_query t ~target_id query =
   match t with
   | `Standalone s ->
     let open Standalone in
-    Ketrew_plugin.call_query ~target query
+    Ketrew_engine.get_target s.engine target_id
+    >>= fun target ->
+    Ketrew_engine.get_target_state s.engine target_id
+    >>= fun state ->
+    Ketrew_plugin.call_query ~state ~target query
   | `Http_client c ->
-    Http_client.call_query c ~target query
+    Http_client.call_query c ~target_id query
     >>< begin function 
     | `Ok s -> return s
     | `Error (`Failure e) -> fail (Log.s e)

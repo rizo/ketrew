@@ -21,12 +21,13 @@ val build_process : ?with_details:bool ->
     [< `Long_running of string * string | `No_operation ] ->
     SmartPrint.t
 
-val target_for_menu : Ketrew_target.t -> Log.t
+val target_for_menu : state:Ketrew_target_state.t -> Ketrew_target.t -> Log.t
 
 val metadata: full:bool -> [ `String of string ] -> Log.t
 
 val target : ?build_process_details:bool ->
   ?condition_details:bool ->
   ?metadata_details:bool ->
+  state:Ketrew_target_state.t ->
   Ketrew_target.t ->
   Log.t

@@ -115,11 +115,11 @@ let long_running_log plugin_name content =
     ["Error", log]
   end
 
-let additional_queries target =
+let additional_queries ~state target =
   let module Target = Ketrew_target in
   match Target.(build_process target) with
   | `Long_running (plugin, _) ->
-    begin match Target.latest_run_parameters target with
+    begin match Ketrew_target_state.latest_run_parameters state with
     | Some rp ->
       begin match find_plugin plugin with
       | Some m ->
@@ -144,11 +144,11 @@ let additional_queries target =
   | other -> []
 
 
-let call_query ~target query =
+let call_query ~state  ~target query =
   let module Target = Ketrew_target in
   match Target.build_process target with
   | `Long_running (plugin, _) ->
-    begin match Target.latest_run_parameters target with
+    begin match Ketrew_target_state.latest_run_parameters state with
     | Some rp ->
       begin match find_plugin plugin with
       | Some m ->

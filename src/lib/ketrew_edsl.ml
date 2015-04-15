@@ -131,10 +131,8 @@ let user_target_internal
         ~if_fails_activate:(List.map if_fails_activate ~f:(fun t -> t#id))
         ~success_triggers:(List.map success_triggers ~f:(fun t -> t#id))
         ~name:self#name ?condition:done_when
-        ?equivalence ?tags
+        ?equivalence ?tags ~active
         ~make ()
-      |> (fun x ->
-          if active then Target.activate_exn ~reason:`User x else x)
     method product =
       Option.value_exn product 
         ~msg:(fmt "Target %s has no known product" self#name)

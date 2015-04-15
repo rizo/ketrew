@@ -123,7 +123,7 @@ module Run_automaton : sig
 end
 
 val get_status : t -> Ketrew_target.id ->
-  (Ketrew_target.State.t,
+  (Ketrew_target_state.t,
    [> `Database of Trakeva.Error.t
    | `IO of
         [> `Read_file_exn of string * exn | `Write_file_exn of string * exn ]

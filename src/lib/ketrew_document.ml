@@ -16,6 +16,7 @@
 
 open Ketrew_pervasives
 module Target = Ketrew_target
+module TS = Ketrew_target_state
 
 (* Is this necesary?
 let log_list ~empty l =
@@ -50,28 +51,28 @@ let condition ?(with_details=false) =
     then Target.Condition.log c
     else s "Runs When “Not Done”"
 
-let short_status t =
+let short_status state =
   let open Log in
-  let state = Target.state t in
+  let state = TS.history state in
   let add_color =
-    match Target.State.simplify state with
+    match TS.State.simplify state with
     | `In_progress -> if_color bold_yellow
     | `Failed -> if_color bold_red
     | `Activable -> if_color greyish
     | `Successful -> if_color bold_green
   in
-  let (`Time time, `Log log, `Info info) = Target.State.summary state in
-  add_color (s (Target.State.name state))
+  let (`Time time, `Log log, `Info info) = TS.State.summary state in
+  add_color (s (TS.State.name state))
   %sp % braces (Time.log time
                 % Option.value_map
                   ~default:empty log ~f:(fun m -> sp % parens (s m))
                 % separate empty (List.map ~f:(fun m -> s ", " % s m) info))
 
-let target_for_menu t =
+let target_for_menu ~state t =
   let open Log in
   if_color bold_yellow (s (Target.name t)) % n
   % if_color greyish (s (Target.id t)) % n
-  % short_status t
+  % short_status state
 
 let metadata ~full = function
 | `String str ->
@@ -85,7 +86,8 @@ let metadata ~full = function
   end
 
 let target
-    ?build_process_details ?condition_details ?(metadata_details=false) t =
+    ?build_process_details ?condition_details ?(metadata_details=false)
+    ~state t =
   let open Log in
   let doc_build_process = build_process in
   let doc_condition = condition in
@@ -110,7 +112,7 @@ let target
       | `None -> s "None"
       | `Same_active_condition -> s "Same active condition");
     "Tags", OCaml.list quote (tags t);
-    "Status", short_status t;
+    "Status", short_status state;
     "Additional Log",
     OCaml.list (fun (time, msg) ->
         brakets (Time.log time) % s ": " % s msg) (additional_log t);
