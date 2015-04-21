@@ -234,28 +234,21 @@ module File = struct
 
   let get_path ?root () =
     let env n () = try Some (Sys.getenv n) with | _ -> None in
+    let exists path () = if Sys.file_exists path then Some path else None in
     let try_options l last_resort =
       match List.find_map l ~f:(fun f -> f ()) with
       | Some s -> s
-      | None -> last_resort () in
-    let findout_path () =
+      | None -> last_resort in
+    let possible_files = [
+        env "KETREW_CONFIGURATION";
+        env "KETREW_CONFIG";
+      ] @ List.map (exists) default_configuration_filenames in
+    let ketrew_path =
       try_options [
         (fun () -> root);
         env "KETREW_ROOT";
-      ] (fun () -> default_ketrew_path) in
-    let find_in_path () =
-      let ketrew_path = findout_path () in
-      try_options
-        (List.map default_configuration_filenames
-           ~f:(fun path ->
-               fun () -> if Sys.file_exists path then Some path else None))
-        (fun () -> ketrew_path ^ "configuration.json")
-    in
-    try_options [
-      env "KETREW_CONFIGURATION";
-      env "KETREW_CONFIG";
-    ]
-      find_in_path
+      ] default_ketrew_path in
+    try_options possible_files (ketrew_path ^ "configuration.json")
 
   let read_file_no_lwt path =
     let i = open_in path in
@@ -293,22 +286,23 @@ module File = struct
 
 
   let load_exn path =
-    match (String.split ~on:(`Character '.') path |> List.last) with
-    | Some "json" | None ->
-      read_file_no_lwt path |> parse_string_exn
-    | Some "ml" ->
-      read_command_output_no_lwt_exn
-        (fmt "ocaml %s" Filename.(quote path))
-      |> parse_string_exn
-    | Some "sh" ->
-      read_command_output_no_lwt_exn path
-      |> parse_string_exn
-    | Some "url" ->
-      failwith "Getting config from URL: not implemented"
-    | Some other ->
-      Log.(s "Config file should a discriminatory extension, not "
-           % quote other % s " pretending it is `.json`" @ warning);
-      read_file_no_lwt path |> parse_string_exn
+    let ext = try Filename.chop_extension path with Invalid_argument _ -> "" in
+    begin match ext with
+    | "json" ->
+        read_file_no_lwt path
+    | "ml"   ->
+        read_command_output_no_lwt_exn
+          (fmt "ocaml %s" Filename.(quote path))
+    | "sh"   ->
+        read_command_output_no_lwt_exn path
+    | "url"  ->
+        failwith "Getting config from URL: not implemented"
+    | other  ->
+         Log.(s "Config file should a discriminatory extension, not "
+            % quote other % s " pretending it is `.json`" @ warning);
+        read_file_no_lwt path
+    end
+    |> parse_string_exn
 
 end
 
