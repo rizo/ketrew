@@ -23,7 +23,7 @@ let has_coverage () =
   with _ -> false
 
 let bisect_dir () =
-  let ic = Unix.open_process_in "ocamlfind query bisect" in
+  let ic = Unix.open_process_in "ocamlfind query bisect_ppx" in
   let line = input_line ic in
   close_in ic;
   line
@@ -33,11 +33,9 @@ let () =
       | After_rules     ->
         if has_coverage () then
           begin
-            let bsdir = Printf.sprintf "%s/%s" (bisect_dir ()) in
-            flag ["pp"]                        (S [A"camlp4o"; A"str.cma"; A (bsdir "bisect_pp.cmo")]);
-            flag ["compile"]                   (S [A"-I"; A (bsdir "")]);
-            flag ["link"; "byte"; "program"]   (S [A"-I"; A (bsdir ""); A"bisect.cmo"]);
-            flag ["link"; "native"; "program"] (S [A"-I"; A (bsdir ""); A"bisect.cmx"]);
+            flag ["compile"]                  (S [A"-package"; A "bisect_ppx"]);
+            flag ["link"; "byte"; "program"]  (S [A"-package"; A "bisect_ppx"]);
+            flag ["link"; "native"; "program"](S [A"-package"; A "bisect_ppx"]);
           end
         else
           ()
