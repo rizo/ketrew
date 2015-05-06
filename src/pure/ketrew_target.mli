@@ -182,7 +182,7 @@ val create :
   ?id:id -> ?name:string ->
   ?metadata:[ `String of string ] ->
   ?dependencies:id list ->
-  ?if_fails_activate:id list ->
+  ?failure_triggers:id list ->
   ?success_triggers:id list ->
   ?make:Build_process.t ->
   ?condition:Condition.t ->

@@ -309,7 +309,7 @@ let user_command_list t =
   let rec go_through_deps t =
     t#render ::
     List.concat_map t#dependencies ~f:go_through_deps
-    @ List.concat_map t#if_fails_activate ~f:go_through_deps
+    @ List.concat_map t#failure_triggers ~f:go_through_deps
     @ List.concat_map t#success_triggers ~f:go_through_deps
   in
   let targets =

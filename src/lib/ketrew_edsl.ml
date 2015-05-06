@@ -93,7 +93,7 @@ class type user_target =
     method id: Unique_id.t
     method render: Ketrew_target.t
     method dependencies: user_target list
-    method if_fails_activate: user_target list
+    method failure_triggers: user_target list
     method success_triggers: user_target list
     method metadata: [`String of string ] option
     method product: user_artifact
@@ -103,7 +103,7 @@ class type user_target =
 let user_target_internal
     ?(active = false)
     ?(dependencies = [])
-    ?(if_fails_activate = [])
+    ?(failure_triggers = [])
     ?(success_triggers = [])
     ?(name: string option)
     ?(make: Target.Build_process.t = Target.Build_process.nop)
@@ -123,7 +123,7 @@ let user_target_internal
       | Some s -> s
     method id = id
     method dependencies = dependencies
-    method if_fails_activate = if_fails_activate
+    method failure_triggers = failure_triggers
     method success_triggers = success_triggers
     method activate = active <- true
     method is_active = active
@@ -132,7 +132,7 @@ let user_target_internal
       Target.create ?metadata
         ~id:self#id
         ~dependencies:(List.map dependencies ~f:(fun t -> t#id))
-        ~if_fails_activate:(List.map if_fails_activate ~f:(fun t -> t#id))
+        ~failure_triggers:(List.map failure_triggers ~f:(fun t -> t#id))
         ~success_triggers:(List.map success_triggers ~f:(fun t -> t#id))
         ~name:self#name ?condition:done_when
         ?equivalence ?tags
@@ -146,17 +146,17 @@ let user_target_internal
   end
 
 let target ?active ?dependencies ?make ?done_when ?metadata ?product
-    ?equivalence ?if_fails_activate ?success_triggers ?tags name =
+    ?equivalence ?failure_triggers ?success_triggers ?tags name =
   user_target_internal
-    ?equivalence ?if_fails_activate ?tags ?success_triggers
+    ?equivalence ?failure_triggers ?tags ?success_triggers
     ?active ?dependencies ~name ?make ?metadata ?done_when ?product ()
 
 let file_target 
-    ?dependencies ?make ?metadata ?name ?host ?equivalence ?if_fails_activate
+    ?dependencies ?make ?metadata ?name ?host ?equivalence ?failure_triggers
     ?success_triggers ?tags path =
   let product = file ?host path in
   let name = Option.value name ~default:("Make:" ^ path) in
-  target ~product ?equivalence ?if_fails_activate ?tags ?success_triggers
+  target ~product ?equivalence ?failure_triggers ?tags ?success_triggers
     ~done_when:product#exists ?dependencies ?make ?metadata name
 
 module Program = struct

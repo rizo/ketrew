@@ -571,7 +571,7 @@ type t = {
   name: string;
   metadata: [`String of string] option;
   dependencies: id list;
-  if_fails_activate: id list;
+  failure_triggers: id list;
   success_triggers: id list;
   make: Build_process.t;
   condition: Condition.t option;
@@ -583,7 +583,7 @@ type t = {
 
 let create
     ?id ?name ?metadata
-    ?(dependencies=[]) ?(if_fails_activate=[]) ?(success_triggers=[])
+    ?(dependencies=[]) ?(failure_triggers=[]) ?(success_triggers=[])
     ?(make=Build_process.nop)
     ?condition ?(equivalence=`Same_active_condition) ?(tags=[])
     () = 
@@ -591,7 +591,7 @@ let create
   let id = Option.value id ~default:(Unique_id.create ()) in
   { id; name = Option.value name ~default:id; metadata; tags; 
     log = []; dependencies; make; condition; history; equivalence;
-    if_fails_activate; success_triggers; }
+    failure_triggers; success_triggers; }
 
 let to_serializable t = t
 let of_serializable t = t
@@ -599,7 +599,7 @@ let of_serializable t = t
 let id : t -> Unique_id.t = fun t -> t.id
 let name : t -> string = fun t -> t.name
 let dependencies: t -> id list = fun t -> t.dependencies
-let fallbacks: t -> id list = fun t -> t.if_fails_activate
+let fallbacks: t -> id list = fun t -> t.failure_triggers
 let success_triggers: t -> id list = fun t -> t.success_triggers
 let metadata = fun t -> t.metadata
 let build_process: t -> Build_process.t = fun t -> t.make
@@ -685,7 +685,7 @@ module Automaton = struct
     let return_with_history ?(no_change=false) t h =
       with_history t h, (if no_change then `No_change else `Changed_state) in
     let activate_fallbacks c =
-      `Activate (t.if_fails_activate, (fun ?log () ->
+      `Activate (t.failure_triggers, (fun ?log () ->
           return_with_history t (`Finished (to_history ?log c)))) in
     let activate_success_triggers c =
       `Activate (t.success_triggers, (fun ?log () ->

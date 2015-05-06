@@ -409,12 +409,12 @@ let ensure_lsf_is_running ~box =
         && exec ["sudo"; "/usr/etc/openlava"; "start"]
       ))
 
-let lsf_job ?success_triggers ?if_fails_activate ~box () =
+let lsf_job ?success_triggers ?failure_triggers ~box () =
   let open Ketrew.EDSL in
   let output = "/tmp/du-sh-dollar-home" in
   let host = Vagrant_box.as_host box in
   let name = "lsf-1" in
-  file_target ~host ~name output ?success_triggers ?if_fails_activate
+  file_target ~host ~name output ?success_triggers ?failure_triggers
     ~dependencies:[ ensure_lsf_is_running ~box ]
     ~tags:["integration"; "lsf"]
     ~make:(
@@ -464,14 +464,14 @@ let finish_pbs_setup ~box () =
     ~make:(Vagrant_box.do_on box
              ~program:Program.( chain (List.map ~f:sh setup)))
 
-let pbs_job ?success_triggers ?if_fails_activate ~box kind =
+let pbs_job ?success_triggers ?failure_triggers ~box kind =
   let open Ketrew.EDSL in
   let setup = finish_pbs_setup ~box () in
   match kind with
   | `Always_runs ->
     let host = Vagrant_box.as_host box in
     let name = "pbs-2" in
-    target name ?success_triggers ?if_fails_activate
+    target name ?success_triggers ?failure_triggers
       ~dependencies:[setup]
       ~tags:["integration"; "pbs"]
       ~make:( pbs ~host ~name Program.( 
@@ -487,7 +487,7 @@ let pbs_job ?success_triggers ?if_fails_activate ~box kind =
     let output = "/tmp/du-sh-slash" in
     let host = Vagrant_box.as_host box in
     let name = "pbs-1" in
-    file_target ~host ~name output ?success_triggers ?if_fails_activate
+    file_target ~host ~name output ?success_triggers ?failure_triggers
       ~dependencies:[setup]
       ~tags:["integration"; "pbs"]
       ~make:(
@@ -523,7 +523,7 @@ let test =
           pbs_job ~box:pbs_host `File_target;
         ]
         ~success_triggers:[clean]
-        ~if_fails_activate:[clean]
+        ~failure_triggers:[clean]
     method clean_up =
       Ketrew.EDSL.target "Destroy VMs"
         ~dependencies:[
@@ -536,7 +536,7 @@ let test =
       Ketrew.EDSL.target "All Intergration Tests MiddleTarget (prep → * < {go,clean})"
         ~dependencies:[prepare]
         ~success_triggers:[self#go_and clean]
-        ~if_fails_activate:[clean]
+        ~failure_triggers:[clean]
 
     method box_names = ["LSF"; "PBS"]
     method ssh = function
