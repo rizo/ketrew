@@ -503,20 +503,20 @@ let test =
   let pbs_host = Vagrant_box.create `Audy_torque "PbsTestHost" in
   object  (self)
     method prepare =
-      Ketrew.EDSL.target "Prepare VMs"
+      Ketrew.EDSL.phony_target "Prepare VMs"
         ~dependencies:[
           Vagrant_box.prepare lsf_host;
           Vagrant_box.prepare pbs_host;
         ]
     method go =
-      Ketrew.EDSL.target "Run Tests"
+      Ketrew.EDSL.phony_target "Run Tests"
         ~dependencies:[
           lsf_job ~box:lsf_host ();
           pbs_job ~box:pbs_host `Always_runs;
           pbs_job ~box:pbs_host `File_target;
         ]
     method go_and clean =
-      Ketrew.EDSL.target "Run Tests"
+      Ketrew.EDSL.phony_target "Run Tests"
         ~dependencies:[
           lsf_job ~box:lsf_host ();
           pbs_job ~box:pbs_host `Always_runs;
@@ -525,7 +525,7 @@ let test =
         ~success_triggers:[clean]
         ~if_fails_activate:[clean]
     method clean_up =
-      Ketrew.EDSL.target "Destroy VMs"
+      Ketrew.EDSL.phony_target "Destroy VMs"
         ~dependencies:[
           Vagrant_box.destroy lsf_host;
           Vagrant_box.destroy pbs_host;
@@ -533,7 +533,8 @@ let test =
     method do_all =
       let clean = self#clean_up in
       let prepare = self#prepare in
-      Ketrew.EDSL.target "All Intergration Tests MiddleTarget (prep → * < {go,clean})"
+      Ketrew.EDSL.phony_target
+        "All Intergration Tests MiddleTarget (prep → * < {go,clean})"
         ~dependencies:[prepare]
         ~success_triggers:[self#go_and clean]
         ~if_fails_activate:[clean]

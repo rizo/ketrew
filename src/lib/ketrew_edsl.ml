@@ -57,7 +57,7 @@ module Host = struct
 
 end
 
-class type user_artifact = object
+class type single_file = object
 
   method path : string
   method exists: Target.Condition.t
@@ -66,13 +66,7 @@ class type user_artifact = object
 
 end
 
-let unit = object
-  method path = failwith "Unit has no path"
-  method exists = failwith "Unit does not “exist”"
-  method is_bigger_than _ = failwith "Unit has no size"
-end
-
-let file ?(host= Host.tmp_on_localhost) path  =
+let file ?(host= Host.tmp_on_localhost) path : single_file  =
   let basename = Filename.basename path in
   object
     val vol =
@@ -85,6 +79,7 @@ let file ?(host= Host.tmp_on_localhost) path  =
     method is_bigger_than n = `Volume_size_bigger_than (vol, n)
   end
 
+
 class type user_target =
   object
     method activate : unit
@@ -96,9 +91,14 @@ class type user_target =
     method if_fails_activate: user_target list
     method success_triggers: user_target list
     method metadata: [`String of string ] option
-    method product: user_artifact
+    (* method product: user_artifact *)
   end
 
+class type ['a] target = object
+  inherit user_target
+  method product: 'a
+  method without_product: unit target
+end
 
 let user_target_internal
     ?(active = false)
@@ -122,9 +122,9 @@ let user_target_internal
       | None -> id
       | Some s -> s
     method id = id
-    method dependencies = dependencies
-    method if_fails_activate = if_fails_activate
-    method success_triggers = success_triggers
+    method dependencies = (dependencies :> user_target list)
+    method if_fails_activate = (if_fails_activate :> user_target list)
+    method success_triggers = (success_triggers :> user_target list)
     method activate = active <- true
     method is_active = active
     method metadata = metadata
@@ -142,6 +142,7 @@ let user_target_internal
     method product =
       Option.value_exn product 
         ~msg:(fmt "Target %s has no known product" self#name)
+    method without_product = (self :> user_target)
 
   end
 
@@ -158,6 +159,12 @@ let file_target
   let name = Option.value name ~default:("Make:" ^ path) in
   target ~product ?equivalence ?if_fails_activate ?tags ?success_triggers
     ~done_when:product#exists ?dependencies ?make ?metadata name
+
+let phony_target ?active ?dependencies ?make ?done_when ?metadata
+    ?equivalence ?if_fails_activate ?success_triggers ?tags name =
+  user_target_internal
+    ?equivalence ?if_fails_activate ?tags ?success_triggers
+    ?active ?dependencies ~name ?make ?metadata ?done_when ~product:() ()
 
 module Program = struct
 

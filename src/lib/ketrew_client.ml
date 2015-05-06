@@ -321,7 +321,8 @@ let user_command_list t =
   | [] -> assert false (* there is at least the argument one *)
 
 let submit ?override_configuration t =
-  let active, dependencies = user_command_list t in
+  let open Ketrew_edsl in
+  let active, dependencies = user_command_list (t :> user_target) in
   let configuration =
     Ketrew_configuration.load_exn
       (match override_configuration with

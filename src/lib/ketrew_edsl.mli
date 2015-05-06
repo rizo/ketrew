@@ -122,7 +122,7 @@ end
 (** Artifacts are things to be built (they may already exist), most often
     file-tree-locations on a given [host] (see also {!Ketrew_artifact.t}).
 *)
-class type user_artifact = object
+class type single_file = object
 
   method path : string
   (** Return the path of the artifact if the artifact is a volume containing
@@ -135,13 +135,15 @@ class type user_artifact = object
   (** Get the “is bigger than <size>” condition. *)
 end
 
-val file: ?host:Ketrew_host.t -> string -> user_artifact
+val file: ?host:Ketrew_host.t -> string -> single_file
 (** Create a volume containing one file. *)
 
+(*
 val unit : user_artifact
 (** The artifact that is “never done” (i.e. the target associated will always
     be (re-)run if activated). *)
-
+*)
+  
 (** {3 Targets} *)
 
 (** Targets are the nodes in the workflow arborescence (see also
@@ -155,9 +157,11 @@ class type user_target =
     method metadata: [ `String of string ] option
     (** The metadata that has been set for the target ({i work-in-progress}). *)
 
+    (*
     method product: user_artifact
     (** The user-artifact produced by the target, if known (raises exception if
         unknown). *)
+       *)
 
     (**/**)
     method activate : unit
@@ -171,33 +175,51 @@ class type user_target =
     (**/**)
   end
 
+class type ['a] target = object
+  inherit user_target
+  method product: 'a
+  method without_product : unit target
+end
+
 val target :
   ?active:bool ->
-  ?dependencies:user_target list ->
+  ?dependencies: _ target list ->
   ?make:Ketrew_target.Build_process.t ->
   ?done_when:Ketrew_target.Condition.t ->
   ?metadata:[ `String of string ] ->
-  ?product:user_artifact ->
+  ?product:'product ->
   ?equivalence:Ketrew_target.Equivalence.t ->
-  ?if_fails_activate:user_target list ->
-  ?success_triggers:user_target list ->
+  ?if_fails_activate: _ target list ->
+  ?success_triggers: _ target list ->
   ?tags: string list ->
-  string -> user_target
+  string -> 'product target
 (** Create a new target. *)
 
 val file_target:
-  ?dependencies:user_target list ->
+  ?dependencies: _ target list ->
   ?make:Ketrew_target.Build_process.t ->
   ?metadata:[ `String of string ] ->
   ?name:string ->
   ?host:Host.t ->
   ?equivalence:Ketrew_target.Equivalence.t ->
-  ?if_fails_activate:user_target list ->
-  ?success_triggers:user_target list ->
+  ?if_fails_activate: _ target list ->
+  ?success_triggers: _ target list ->
   ?tags: string list ->
   string ->
-  user_target
+  single_file target
 (** Create a file {!user_artifact} and the {!user_target} that produces it. *)
+
+val phony_target :
+  ?active:bool ->
+  ?dependencies: _ target list ->
+  ?make:Ketrew_target.Build_process.t ->
+  ?done_when:Ketrew_target.Condition.t ->
+  ?metadata:[ `String of string ] ->
+  ?equivalence:Ketrew_target.Equivalence.t ->
+  ?if_fails_activate: _ target list ->
+  ?success_triggers: _ target list ->
+  ?tags: string list ->
+  string -> unit target
 
 val daemonize :
   ?starting_timeout:float ->

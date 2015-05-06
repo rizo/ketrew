@@ -146,7 +146,7 @@ val restart: t ->
 
 val submit:
   ?override_configuration:Ketrew_configuration.t ->
-  Ketrew_edsl.user_target ->
+  _ Ketrew_edsl.target ->
   unit
 (** Submit a high-level workflow description to the engine; this
     function calls [Lwt_main.run]. *)
