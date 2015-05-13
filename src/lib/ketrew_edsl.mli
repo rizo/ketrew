@@ -199,6 +199,7 @@ val file_target:
   user_target
 (** Create a file {!user_artifact} and the {!user_target} that produces it. *)
 
+
 val daemonize :
   ?starting_timeout:float ->
   ?call_script:(string -> string list) ->
@@ -294,3 +295,37 @@ val yarn_distributed_shell :
       can fail if this string contains spaces for example).
 
 *)
+
+(** {2 Typed & Extensible API}
+
+    More advanced and safer.
+
+*)
+
+type single_file = <
+  exists: Ketrew_target.Condition.t;
+  is_done: Ketrew_target.Condition.t option;
+  path : string;
+  is_bigger_than: int -> Ketrew_target.Condition.t;
+>
+val single_file: ?host:Host.t -> string -> single_file
+
+val nothing:  < is_done : Ketrew_target.Condition.t option >
+
+type 'product step = <
+  product : 'product;
+  target: user_target;
+> constraint 'product = < is_done : Ketrew_target.Condition.t option ; .. >
+
+val step :
+  ?active:bool ->
+  ?depends_on:_ step list ->
+  ?make:Ketrew_target.Build_process.t ->
+  ?done_when:Ketrew_target.Condition.t ->
+  ?metadata:[ `String of string ] ->
+  ?equivalence:Ketrew_target.Equivalence.t ->
+  ?on_failure_activate:_ step list ->
+  ?on_success_activate:_ step list ->
+  ?tags:string list ->
+  ?name:string ->
+  (< is_done : Ketrew_target.Condition.t option; .. > as 'product) -> 'product step

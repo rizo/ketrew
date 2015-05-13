@@ -159,6 +159,63 @@ let file_target
   target ~product ?equivalence ?if_fails_activate ?tags ?success_triggers
     ~done_when:product#exists ?dependencies ?make ?metadata name
 
+type 'product step = <
+  product : 'product;
+  target: user_target;
+>
+  constraint 'product =
+    < is_done : Target.Condition.t option ; .. >
+
+let step
+    ?active ?depends_on
+    ?make ?done_when ?metadata
+    ?equivalence
+    ?on_failure_activate
+    ?on_success_activate
+    ?tags ?name
+    (product: 'product) : 'product step =
+  let user_target =
+    let done_when =
+      match done_when with
+      | Some s -> Some s
+      | None -> product#is_done in
+    let rawize_list_option lo =
+      Option.map lo ~f:(List.map ~f:(fun t -> t#target)) in
+    let dependencies =  rawize_list_option depends_on in
+    let success_triggers = rawize_list_option on_success_activate in
+    let if_fails_activate = rawize_list_option on_failure_activate in
+    user_target_internal
+      ?equivalence ?if_fails_activate ?tags ?success_triggers
+      ?active ?dependencies ?name ?make ?metadata ?done_when ()
+  in
+  object
+    method product = product
+    method target = user_target
+  end
+
+type single_file = <
+  exists: Target.Condition.t;
+  is_done: Target.Condition.t option;
+  path : string;
+  is_bigger_than: int -> Target.Condition.t;
+>
+let single_file ?(host= Host.tmp_on_localhost) path : single_file =
+  let basename = Filename.basename path in
+  object
+    val vol =
+      Target.Volume.(
+        create ~host
+          ~root:(Path.absolute_directory_exn (Filename.dirname path))
+          (file basename))
+    method path = path
+    method exists = `Volume_exists vol
+    method is_done = Some (`Volume_exists vol)
+    method is_bigger_than n = `Volume_size_bigger_than (vol, n)
+  end
+
+let nothing  = object method is_done = None end
+
+
 module Program = struct
 
   type t = Ketrew_program.t
